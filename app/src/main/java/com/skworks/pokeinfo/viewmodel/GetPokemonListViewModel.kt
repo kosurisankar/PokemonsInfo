@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.skworks.pokeinfo.client.PokeApiClient
 import com.skworks.pokeinfo.model.NamedApiResource
-import com.skworks.pokeinfo.repository.PokemonRepository
 import kotlinx.coroutines.launch
 
 class GetPokemonListViewModel: ViewModel() {
@@ -18,7 +17,7 @@ class GetPokemonListViewModel: ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
-    val api = PokeApiClient()
+    private val api = PokeApiClient()
 
     init {
         fetchPokemonList()

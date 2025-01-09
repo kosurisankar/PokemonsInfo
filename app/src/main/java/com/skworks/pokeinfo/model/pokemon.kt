@@ -151,9 +151,16 @@ data class Cries(
 data class Other(
     val dream_world : DreamWorld?,
     val home: Home?,
-    @SerializedName("official-artwork")  val official_artwork : OfficialArtwork?
+    @SerializedName("official-artwork")  val official_artwork : OfficialArtwork?,
+    val showdown: Showdown
 )
 
+data class Showdown(
+    val back_default : String,
+    val front_default : String,
+    val front_shiny : String,
+    val back_shiny : String
+)
 data class DreamWorld(
     val front_default : String?
 )

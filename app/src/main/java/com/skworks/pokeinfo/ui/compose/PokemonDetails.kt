@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +66,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
+import coil.decode.GifDecoder
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import com.skworks.pokeinfo.R
@@ -70,6 +74,7 @@ import com.skworks.pokeinfo.model.NamedApiResource
 import com.skworks.pokeinfo.model.Pokemon
 import com.skworks.pokeinfo.model.PokemonAbility
 import com.skworks.pokeinfo.model.PokemonSpecies
+import com.skworks.pokeinfo.model.PokemonSprites
 import com.skworks.pokeinfo.model.PokemonStat
 import com.skworks.pokeinfo.util.ChangeColor
 import com.skworks.pokeinfo.util.convertDecimeters
@@ -123,6 +128,7 @@ fun OnPokemonNameClick(pokeId: Int, colorCode: Color) {
                 PokemonSpeciesCard(pokemonDetails, pokemonDescription, colorCode)
                 PokemonAbilityCard(pokemonDetails.abilities, colorCode)
                 PokemonBaseStatsCard(pokemonDetails.stats, colorCode)
+                PokemonSpritesCard(pokemonDetails.sprites, colorCode)
             }
         }
     }
@@ -430,6 +436,79 @@ fun PokemonBaseStatsCard(stats: List<PokemonStat>, color: Color) {
 }
 
 @Composable
+fun PokemonSpritesCard(sprites: PokemonSprites, color: Color) {
+    Column(
+        modifier = Modifier
+            .wrapContentHeight()
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        LargeText(
+            text = "Sprites",
+            modifier = Modifier.padding(8.dp),
+            color = ChangeColor().getDarkerColor(color, 0.4f),
+            fontWeight = FontWeight.Bold
+        )
+    }
+    Card(
+        modifier = Modifier
+            .wrapContentHeight()
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+
+        val normalSpritesList = mutableListOf<String>().apply {
+            add(sprites.other?.showdown?.front_default.orEmpty())
+            add(sprites.other?.showdown?.back_default.orEmpty())
+        }
+
+        val shinySpritesList = mutableListOf<String>().apply {
+            add(sprites.other?.showdown?.front_shiny.orEmpty())
+            add(sprites.other?.showdown?.back_shiny.orEmpty())
+        }
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(), contentAlignment = Alignment.Center
+            ) {
+                MediumText(text = "Normal", color = ChangeColor().getDarkerColor(color, 0.4f))
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp), Arrangement.Center
+            ) {
+                normalSpritesList.forEach { each ->
+                    ShowPokemonImage(each)
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(), contentAlignment = Alignment.Center
+            ) {
+                MediumText(text = "Shiny", color = ChangeColor().getDarkerColor(color, 0.4f))
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp), Arrangement.Center
+            ) {
+                shinySpritesList.forEach { each ->
+                    ShowPokemonImage(each)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun BarGraph(
     data: List<Float>,
     names: List<String>,
@@ -560,6 +639,7 @@ fun TitleCardWithImage(details: Pokemon, genera: String, color: Color) {
     val pokeImage = details.sprites.other?.dream_world?.front_default
         ?: details.sprites.other?.home?.front_default
     Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        var isLoading by remember { mutableStateOf(true) }
 
         Column(
             modifier = Modifier
@@ -640,10 +720,20 @@ fun TitleCardWithImage(details: Pokemon, genera: String, color: Color) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(pokeImage)
                     .decoderFactory(SvgDecoder.Factory())
+                    .listener(
+                        onSuccess = { _, _ -> isLoading = false },
+                        onError = { _, _ -> isLoading = false }
+                    )
                     .build(),
                 contentDescription = "pokemon image",
                 modifier = Modifier
@@ -710,6 +800,42 @@ fun TitleCardWithImage(details: Pokemon, genera: String, color: Color) {
 }
 
 @Composable
+fun ShowPokemonImage(pokeImageUrl: String?) {
+    var isLoading by remember { mutableStateOf(true) }
+    Box(
+        modifier = Modifier
+            .padding(8.dp)
+            .wrapContentSize()
+            .aspectRatio(1f),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(pokeImageUrl)
+                .crossfade(true)
+                .decoderFactory(GifDecoder.Factory())
+                .listener(
+                    onSuccess = { _, _ -> isLoading = false },
+                    onError = { _, _ -> isLoading = false }
+                )
+                .build(),
+            contentDescription = "pokemon image",
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            alignment = Alignment.Center,
+        )
+    }
+}
+
+@Composable
 @Preview(showBackground = true)
 fun PreviewScreen() {
     val examplePokemonAbility =
@@ -740,16 +866,42 @@ fun PreviewScreen() {
                 )
             )
         )
-//    PokemonAbilityCard(examplePokemonAbility, colorResource(id = R.color.card_color_8))
     val sampleData = listOf(30f, 8f, 55f, 10f, 75f, 45f)
     val sampleNames = listOf("Jfsdfsfsdfdsdan", "Fdsfseb", "Mar", "Aprsfsd", "Mayjune", "June")
     val barColors = listOf(
         Color.Red, Color.Green, Color.Blue, Color.Yellow, Color.Cyan, Color.Yellow
     )
-    BarGraph(
-        data = sampleData,
-        barColors = barColors,
-        names = sampleNames,
-        modifier = Modifier.fillMaxWidth(), color = Color.Cyan
-    )
+    Column {
+        PokemonAbilityCard(examplePokemonAbility, colorResource(id = R.color.card_color_8))
+
+        BarGraph(
+            data = sampleData,
+            barColors = barColors,
+            names = sampleNames,
+            modifier = Modifier.fillMaxWidth(), color = Color.Cyan
+        )
+        val imgUrl =
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/1.gif"
+        val sampleImgLoader = mutableListOf<String>().apply {
+            add(imgUrl)
+            add(imgUrl)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(), contentAlignment = Alignment.Center
+        ) {
+            MediumText(text = "Shiny")
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp), Arrangement.Center
+        ) {
+            sampleImgLoader.forEach { each ->
+                ShowPokemonImage(each)
+            }
+        }
+    }
+
 }
